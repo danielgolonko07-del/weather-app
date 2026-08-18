@@ -2,6 +2,7 @@ const grid = document.getElementById('grid')
 
 let place
 
+let temperatureChart = null
 
 
 const placeInput = document.createElement('input')
@@ -10,6 +11,8 @@ placeInput.placeholder = 'Enter city'
 if (placeInput.value === '') {
     clicked = false
 }
+
+const searchHistory = document.createElement('div')
 
 const searchBtn = document.createElement('button')
 searchBtn.textContent = 'Search'
@@ -25,13 +28,13 @@ placeInput.addEventListener('keydown', (e) => {
 })
 
 
-
-
 const forecast = document.createElement('div')
 
 const city = document.createElement('div')
 
 const tempDisplay = document.createElement('div')
+
+const chartCanvas = document.createElement('canvas')
 
 const description = document.createElement('div')
 
@@ -55,8 +58,9 @@ async function fetchData() {
     const latitude = data.results[0].latitude;
     const longitude = data.results[0].longitude;
 
-    const weatherResponse = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&daily=temperature_2m_max,temperature_2m_min&hourly=uv_index&current=temperature_2m,wind_speed_10m,wind_direction_10m,precipitation,rain,showers,snowfall,surface_pressure,weather_code`)
+    const weatherResponse = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&daily=temperature_2m_max,temperature_2m_min&hourly=uv_index&current=temperature_2m,wind_speed_10m,wind_direction_10m,precipitation,rain,showers,snowfall,surface_pressure,weather_code&hourly=temperature_2m`)
     const weatherData = await weatherResponse.json()
+    createTemperatureChart(weatherData)
 
     city.textContent = data.results[0].name
     tempDisplay.textContent = `Temperature: ${weatherData.current.temperature_2m} °C`
@@ -64,6 +68,7 @@ async function fetchData() {
     wind.textContent = `Wind: ${weatherData.current.wind_speed_10m} m/s ${weatherData.current.wind_direction_10m}°`
     rainfall.textContent = `Rainfall: ${weatherData.current.precipitation} mm`
     pressure.textContent = `Pressure: ${weatherData.current.surface_pressure} hPa`
+
 
 
     const date = new Date()
@@ -79,8 +84,29 @@ async function fetchData() {
          <h3></h3>
         `
         forecast.appendChild(day)
-
     }
+}
+
+function createTemperatureChart(weatherData) {
+    const hours = weatherData.hourly.time.slice(0, 24)
+    const temperature = weatherData.hourly.temperature_2m.slice(0, 24)
+
+    const labels = hours.map(hour => hour.slice(11, 16))
+
+    if (temperatureChart) {
+        temperatureChart.destroy()
+    }
+
+    temperatureChart = new Chart(chartCanvas, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Temperature',
+                data: temperature
+            }]
+        }
+    })
 }
 
 function weatherDescription(code) {
@@ -99,9 +125,9 @@ grid.appendChild(placeInput)
 grid.appendChild(searchBtn)
 grid.appendChild(city)
 grid.appendChild(tempDisplay)
+grid.appendChild(chartCanvas)
 grid.appendChild(description)
 grid.appendChild(wind)
 grid.appendChild(rainfall)
 grid.appendChild(pressure)
 grid.appendChild(forecast)
-
